@@ -1,7 +1,8 @@
 const { GoogleGenAI } = require("@google/genai")
 const { z } = require("zod")
 const { zodToJsonSchema } = require("zod-to-json-schema")
-const puppeteer = require("puppeteer")
+const chromium = require("@sparticuz/chromium");
+const puppeteer = require("puppeteer-core");
 
 const ai = new GoogleGenAI({
     apiKey: process.env.GEMINI_API_KEY
@@ -50,7 +51,7 @@ async function generateInterviewReport({ resume, selfDescription, jobDescription
         }
     })
 
-    
+
     return JSON.parse(response.text)
 
 
@@ -58,25 +59,57 @@ async function generateInterviewReport({ resume, selfDescription, jobDescription
 }
 
 // function to generate PDF from HTML using puppeteer
+// async function generatePdfFromHtml(htmlContent) {
+//     const browser = await puppeteer.launch({
+//         args: ['--no-sandbox', '--disable-setuid-sandbox']
+//     })
+//     const page = await browser.newPage();
+//     await page.setContent(htmlContent, { waitUntil: "networkidle0" })
+
+//     const pdfBuffer = await page.pdf({
+//         format: "A4", margin: {
+//             top: "20mm",
+//             bottom: "20mm",
+//             left: "15mm",
+//             right: "15mm"
+//         }
+//     })
+
+//     await browser.close()
+
+//     return pdfBuffer
+// }
+
 async function generatePdfFromHtml(htmlContent) {
     const browser = await puppeteer.launch({
-        args: ['--no-sandbox', '--disable-setuid-sandbox']
-    })
+        args: [...chromium.args, "--no-sandbox"],
+        executablePath: await chromium.executablePath(),
+        headless: chromium.headless,
+    });
+
     const page = await browser.newPage();
-    await page.setContent(htmlContent, { waitUntil: "networkidle0" })
+
+    await page.setContent(htmlContent, {
+        waitUntil: "networkidle0",
+        timeout: 60000
+    });
+
+    // optional delay (fix blank PDF issue)
+    await page.waitForTimeout(1000);
 
     const pdfBuffer = await page.pdf({
-        format: "A4", margin: {
+        format: "A4",
+        printBackground: true,
+        margin: {
             top: "20mm",
             bottom: "20mm",
             left: "15mm",
             right: "15mm"
         }
-    })
+    });
 
-    await browser.close()
-
-    return pdfBuffer
+    await browser.close();
+    return pdfBuffer;
 }
 
 //generate resume html
@@ -107,7 +140,7 @@ async function generateResumePdf({ resume, selfDescription, jobDescription }) {
             responseSchema: zodToJsonSchema(resumePdfSchema),
         }
     })
-    
+
     const jsonContent = JSON.parse(response.text)
 
     const pdfBuffer = await generatePdfFromHtml(jsonContent.html)
@@ -116,4 +149,4 @@ async function generateResumePdf({ resume, selfDescription, jobDescription }) {
 
 }
 
-module.exports = {generateInterviewReport, generateResumePdf}
+module.exports = { generateInterviewReport, generateResumePdf }
