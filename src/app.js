@@ -18,13 +18,13 @@ app.use(cookieParser());
 //     process.env.FRONTEND_URL
 // ];
 
-// app.use(cors({
-//   origin: [
-//     "http://localhost:5173",
-//     "https://harshit-jain-mern-ai.vercel.app"
-//   ],
-//   credentials: true
-// }));
+app.use(cors({
+  origin: [
+    "http://localhost:5173",
+    "https://harshit-jain-mern-ai.vercel.app"
+  ],
+  credentials: true
+}));
 
 
 const router = require('./routes/auth.routes');
